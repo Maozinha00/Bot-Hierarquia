@@ -19,7 +19,6 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
-const ROLE_BASE = "1477683902079303932";
 const CHANNEL_ID = "1477683905187414165";
 
 // 🤖 CLIENT
@@ -30,61 +29,83 @@ const client = new Client({
   ]
 });
 
-// 📊 GERAR HIERARQUIA
+/* =========================
+   📊 DADOS FIXOS (SUA LISTA)
+========================= */
+
+const hierarquiaDB = {
+  "RESP.HP": [
+    { nome: "Seregio", idInterno: "-", discord: "simpae." }
+  ],
+  "AUX.RESP.HP": [
+    { nome: "Xulia", idInterno: "-", discord: "ywsh7" }
+  ],
+  "DIR": [
+    { nome: "Aurora", idInterno: "633", discord: "isautrini9327" },
+    { nome: "Henrique", idInterno: "368", discord: "jhenrique.28" }
+  ],
+  "VD": [
+    { nome: "Aika Souza", idInterno: "408", discord: "mavi_60141" }
+  ],
+  "SUP": [],
+  "COD": [
+    { nome: "Kau", idInterno: "429", discord: "_paulaasx" }
+  ],
+  "MED": [
+    { nome: "Aila Suzuki", idInterno: "2180", discord: "xbuny_" },
+    { nome: "Rian Beckham", idInterno: "17548", discord: "youtuberfrg" },
+    { nome: "Davidy Lampião", idInterno: "17518", discord: "karateka4150" }
+  ],
+  "ENF": [
+    { nome: "Rolnadinho", idInterno: "17249", discord: "walison07676" },
+    { nome: "Tink Wink", idInterno: "15968", discord: "letipotato" }
+  ],
+  "PARM": [
+    { nome: "Rogin", idInterno: "1207", discord: "_rogin085" },
+    { nome: "VENEZA", idInterno: "16461", discord: "44yve" }
+  ],
+  "STF": [
+    { nome: "Rute Rute", idInterno: "-", discord: "rute.rute" }
+  ]
+};
+
+/* =========================
+   📊 GERAR HIERARQUIA
+========================= */
+
 async function gerarHierarquia(guild) {
-  await guild.members.fetch(); // 🔥 ESSENCIAL
-
-  const roleBase = guild.roles.cache.get(ROLE_BASE);
-  if (!roleBase) return "❌ Cargo base não encontrado";
-
-  const grupos = {
-    "RESP.HP": [],
-    "AUX.RESP.HP": [],
-    "DIR": [],
-    "VD": [],
-    "SUP": [],
-    "COD": [],
-    "MED": [],
-    "ENF": [],
-    "PARM": [],
-    "STF": []
-  };
-
-  roleBase.members.forEach(member => {
-    const nome = member.nickname || member.user.username;
-
-    const siglaMatch = nome.match(/\[(.*?)\]/);
-    if (!siglaMatch) return;
-
-    const sigla = siglaMatch[1];
-
-    const nomeLimpo = nome.replace(/\[.*?\]/, "").trim();
-    const matchId = nomeLimpo.match(/\|\s*(\d+)/);
-
-    const nomeFinal = nomeLimpo.split("|")[0].trim();
-    const idInterno = matchId ? matchId[1] : "Sem ID";
-
-    const mention = `<@${member.id}>`;
-
-    if (grupos[sigla]) {
-      grupos[sigla].push(
-        `• ${mention} | ${nomeFinal} | ${idInterno}`
-      );
-    }
-  });
-
   let texto = "🔰 HIERARQUIA DO HOSPITAL HP 🔰\n\n";
 
-  for (const [cargo, lista] of Object.entries(grupos)) {
+  for (const [cargo, lista] of Object.entries(hierarquiaDB)) {
     texto += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     texto += `✅ ${cargo}\n`;
-    texto += `${lista.join("\n") || "• Nenhum"}\n\n`;
+
+    if (!lista.length) {
+      texto += "• Nenhum\n\n";
+      continue;
+    }
+
+    for (const pessoa of lista) {
+      // tenta encontrar membro pelo username
+      const membro = guild.members.cache.find(
+        m => m.user.username === pessoa.discord
+      );
+
+      const mention = membro ? `<@${membro.id}>` : `@${pessoa.discord}`;
+
+      texto += `• ${mention} | ${pessoa.nome} | ${pessoa.idInterno}\n`;
+    }
+
+    texto += "\n";
   }
 
   return texto;
 }
 
-// 🧠 EMBED
+/* =========================
+   🧠 EMBED
+========================= */
+
 async function criarEmbed(guild) {
   const texto = await gerarHierarquia(guild);
 
@@ -92,11 +113,14 @@ async function criarEmbed(guild) {
     .setColor("#00BFFF")
     .setTitle("🏥 Sistema de Hierarquia HP")
     .setDescription(`\`\`\`\n${texto}\n\`\`\``)
-    .setFooter({ text: "Gerado manualmente" })
+    .setFooter({ text: "Sistema automático" })
     .setTimestamp();
 }
 
-// 📤 ENVIAR NO CANAL
+/* =========================
+   📤 ENVIAR
+========================= */
+
 async function enviarHierarquia(guild) {
   const canal = guild.channels.cache.get(CHANNEL_ID);
   if (!canal) return console.log("❌ Canal não encontrado");
@@ -109,7 +133,10 @@ async function enviarHierarquia(guild) {
   });
 }
 
-// 📜 COMANDO
+/* =========================
+   📜 COMANDO
+========================= */
+
 const commands = [
   new SlashCommandBuilder()
     .setName("hierarquia")
@@ -125,13 +152,19 @@ async function registrarComandos() {
   );
 }
 
-// 🚀 READY
+/* =========================
+   🚀 READY
+========================= */
+
 client.once("ready", async () => {
   console.log(`🔥 Logado como ${client.user.tag}`);
   await registrarComandos();
 });
 
-// 🎮 INTERAÇÃO
+/* =========================
+   🎮 INTERAÇÃO
+========================= */
+
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -145,5 +178,8 @@ client.on("interactionCreate", async interaction => {
   }
 });
 
-// 🔑 LOGIN
+/* =========================
+   🔑 LOGIN
+========================= */
+
 client.login(TOKEN);
