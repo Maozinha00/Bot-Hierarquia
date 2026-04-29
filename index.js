@@ -179,10 +179,9 @@ client.on("interactionCreate", async interaction => {
   const user = interaction.options?.getUser("pessoa");
 
   if (interaction.commandName === "quadro") {
-    return interaction.reply({
-      embeds: [criarEmbed()],
-      ephemeral: true
-    });
+return interaction.reply({
+  embeds: [criarEmbed()]
+});
   }
 
   if (!cargos[cargo]) {
