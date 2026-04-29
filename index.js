@@ -17,7 +17,7 @@ app.listen(3000);
 // 🔐 CONFIG
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
-
+const GUILD_ID = process.env.GUILD_ID;
 const ROLE_BASE = "1477683902079303932";
 const CHANNEL_ID = "1477683905187414165";
 
