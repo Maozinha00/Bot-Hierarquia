@@ -26,42 +26,36 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
 const CHANNEL_ID = "1477683905187414165";
-const ATUALIZADO_POR_ID = "COLOCA_ID_AQUI";
-
-/* =========================
-   👥 IDs DOS MEMBROS
-========================= */
-
-const IDS = {
-  SIMPAE: "ID_AQUI",
-  YWSH7: "ID_AQUI",
-  ISA: "ID_AQUI",
-  JHENRIQUE: "ID_AQUI",
-  MAVI: "ID_AQUI",
-  RUTE: "ID_AQUI",
-  PAULA: "ID_AQUI",
-  XBUNY: "ID_AQUI",
-  YOUTUBERFRG: "ID_AQUI",
-  KARATEKA: "ID_AQUI",
-  WALISON: "ID_AQUI",
-  LETI: "ID_AQUI",
-  ROGIN: "ID_AQUI",
-  YVE: "ID_AQUI"
-};
 
 /* =========================
    🤖 CLIENT
 ========================= */
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
 });
 
 /* =========================
-   🧠 GERAR TEXTO
+   🔎 CONVERTER @NOME → MENÇÃO
 ========================= */
 
-function gerarTexto() {
+async function mencionar(guild, texto) {
+  const membros = await guild.members.fetch();
+
+  return texto.replace(/@([a-zA-Z0-9._]+)/g, (match, nome) => {
+    const membro = membros.find(m =>
+      m.user.username.toLowerCase() === nome.toLowerCase()
+    );
+
+    return membro ? `<@${membro.id}>` : match;
+  });
+}
+
+/* =========================
+   🧠 GERAR TEXTO BASE
+========================= */
+
+function gerarTextoBase() {
   const data = new Date();
 
   const dataFormatada = data.toLocaleDateString("pt-BR");
@@ -70,48 +64,51 @@ function gerarTexto() {
   return `📋 **QUADRO DE CARGOS - HOSPITAL**
 
 👑 **RESPONSÁVEL DO HP**
-RESP.HP | <@${IDS.SIMPAE}>
+RESP.HP | @simpae.
 
 🩺 **AUX. RESPONSÁVEL DO HP**
-AUX.RESP.HP | <@${IDS.YWSH7}>
+AUX.RESP.HP | @ywsh7
 
 🏛️ **DIRETORIA**
-DIR | <@${IDS.ISA}>
-DIR | <@${IDS.JHENRIQUE}>
+DIR | @isautrini9327
+DIR | @jhenrique.28
 
 📌 **VICE DIRETORIA**
-VD | <@${IDS.MAVI}>
+VD | @mavi_60141
 
 ⚖️ **STAFF / STF**
-STF | <@${IDS.RUTE}>
+STF | @rute.rute
 
 📊 **COORDENAÇÃO**
-COD | <@${IDS.PAULA}>
+COD | @_paulaasx
 
 💉 **MÉDICOS**
-MED | <@${IDS.XBUNY}>
-MED | <@${IDS.YOUTUBERFRG}>
-MED | <@${IDS.KARATEKA}>
+MED | @xbuny_
+MED | @youtuberfrg
+MED | @karateka4150
 
 🩹 **ENFERMEIROS**
-ENF | <@${IDS.WALISON}>
-ENF | <@${IDS.LETI}>
+ENF | @walison07676
+ENF | @letipotato
 
 🚑 **PARAMÉDICOS**
-PARM | <@${IDS.ROGIN}>
-PARM | <@${IDS.YVE}>
+PARM | @_rogin085
+PARM | @44yve
 
-📅 Atualizado em ${dataFormatada} às ${horaFormatada} por <@${ATUALIZADO_POR_ID}>`;
+📅 Atualizado em ${dataFormatada} às ${horaFormatada} por @jhenrique.28`;
 }
 
 /* =========================
    🧠 EMBED
 ========================= */
 
-function criarEmbed() {
+async function criarEmbed(guild) {
+  const textoBase = gerarTextoBase();
+  const textoFinal = await mencionar(guild, textoBase);
+
   return new EmbedBuilder()
     .setColor("#00BFFF")
-    .setDescription(gerarTexto())
+    .setDescription(textoFinal)
     .setFooter({ text: "Sistema automático HP" })
     .setTimestamp();
 }
@@ -128,7 +125,7 @@ async function enviar(guild) {
     return;
   }
 
-  const embed = criarEmbed();
+  const embed = await criarEmbed(guild);
 
   await canal.send({
     embeds: [embed],
