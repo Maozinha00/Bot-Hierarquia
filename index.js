@@ -10,7 +10,7 @@ import {
 } from "discord.js";
 
 /* =========================
-   🌐 KEEP ALIVE (Railway / Render)
+   🌐 KEEP ALIVE
 ========================= */
 
 const app = express();
@@ -25,90 +25,65 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
-// 🔴 COLOQUE O ID DO CANAL AQUI
+// 🔴 ID do canal
 const CHANNEL_ID = "1477683905187414165";
 
-/* =========================
-   ⚠️ VALIDAÇÃO
-========================= */
-
-if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
-  console.error("❌ Configure TOKEN, CLIENT_ID e GUILD_ID no .env");
-  process.exit(1);
-}
+// 🔴 ID de quem atualiza (Henrique)
+const ATUALIZADO_POR_ID = "ID_DO_JHENRIQUE";
 
 /* =========================
    🤖 CLIENT
 ========================= */
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
-  ]
+  intents: [GatewayIntentBits.Guilds]
 });
 
 /* =========================
-   📊 HIERARQUIA (USE ID DO DISCORD)
+   🧠 GERAR TEXTO
 ========================= */
 
-const hierarquiaDB = {
-  "RESP.HP": [
-    { nome: "Seregio", idInterno: "-", discordId: "ID_AQUI" }
-  ],
-  "AUX.RESP.HP": [
-    { nome: "Xulia", idInterno: "-", discordId: "ID_AQUI" }
-  ],
-  "DIR": [
-    { nome: "Aurora", idInterno: "633", discordId: "ID_AQUI" },
-    { nome: "Henrique", idInterno: "368", discordId: "ID_AQUI" }
-  ],
-  "VD": [
-    { nome: "Aika Souza", idInterno: "408", discordId: "ID_AQUI" }
-  ],
-  "SUP": [],
-  "COD": [
-    { nome: "Kau", idInterno: "429", discordId: "ID_AQUI" }
-  ],
-  "MED": [
-    { nome: "Aila Suzuki", idInterno: "2180", discordId: "ID_AQUI" },
-    { nome: "Rian Beckham", idInterno: "17548", discordId: "ID_AQUI" },
-    { nome: "Davidy Lampião", idInterno: "17518", discordId: "ID_AQUI" }
-  ],
-  "ENF": [
-    { nome: "Rolnadinho", idInterno: "17249", discordId: "ID_AQUI" },
-    { nome: "Tink Wink", idInterno: "15968", discordId: "ID_AQUI" }
-  ],
-  "PARM": [
-    { nome: "Rogin", idInterno: "1207", discordId: "ID_AQUI" },
-    { nome: "VENEZA", idInterno: "16461", discordId: "ID_AQUI" }
-  ],
-};
+function gerarTexto() {
+  const data = new Date();
 
-/* =========================
-   📊 GERAR TEXTO
-========================= */
+  const dataFormatada = data.toLocaleDateString("pt-BR");
+  const horaFormatada = data.toLocaleTimeString("pt-BR");
 
-function gerarHierarquia() {
-  let texto = "🔰 HIERARQUIA DO HOSPITAL HP 🔰\n\n";
+  return `📋 **QUADRO DE CARGOS - HOSPITAL**
 
-  for (const [cargo, lista] of Object.entries(hierarquiaDB)) {
-    texto += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-    texto += `✅ ${cargo}\n`;
+👑 **RESPONSÁVEL DO HP**
+RESP.HP | @simpae.
 
-    if (!lista.length) {
-      texto += "• Nenhum\n\n";
-      continue;
-    }
+🩺 **AUX. RESPONSÁVEL DO HP**
+AUX.RESP.HP | @ywsh7
 
-    for (const pessoa of lista) {
-      texto += `• <@${pessoa.discordId}> | ${pessoa.nome} | ${pessoa.idInterno}\n`;
-    }
+🏛️ **DIRETORIA**
+DIR | @isautrini9327
+DIR | @jhenrique.28
 
-    texto += "\n";
-  }
+📌 **VICE DIRETORIA**
+VD | @mavi_60141
 
-  return texto;
+⚖️ **STAFF / STF**
+STF | @rute.rute
+
+📊 **COORDENAÇÃO**
+COD | @_paulaasx
+
+💉 **MÉDICOS**
+MED | @xbuny_
+MED | @youtuberfrg
+MED | @karateka4150
+
+🩹 **ENFERMEIROS**
+ENF | @walison07676
+ENF | @letipotato
+
+🚑 **PARAMÉDICOS**
+PARM | @_rogin085
+PARM | @44yve
+
+📅 Atualizado em ${dataFormatada} às ${horaFormatada} por <@${ATUALIZADO_POR_ID}>`;
 }
 
 /* =========================
@@ -116,13 +91,10 @@ function gerarHierarquia() {
 ========================= */
 
 function criarEmbed() {
-  const texto = gerarHierarquia();
-
   return new EmbedBuilder()
     .setColor("#00BFFF")
-    .setTitle("🏥 Sistema de Hierarquia HP")
-    .setDescription(`\`\`\`\n${texto}\n\`\`\``)
-    .setFooter({ text: "Sistema automático" })
+    .setDescription(gerarTexto())
+    .setFooter({ text: "Sistema automático HP" })
     .setTimestamp();
 }
 
@@ -130,7 +102,7 @@ function criarEmbed() {
    📤 ENVIAR
 ========================= */
 
-async function enviarHierarquia(guild) {
+async function enviar(guild) {
   const canal = guild.channels.cache.get(CHANNEL_ID);
 
   if (!canal) {
@@ -147,13 +119,13 @@ async function enviarHierarquia(guild) {
 }
 
 /* =========================
-   📜 COMANDOS
+   📜 COMANDO
 ========================= */
 
 const commands = [
   new SlashCommandBuilder()
-    .setName("hierarquia")
-    .setDescription("Enviar a hierarquia no canal")
+    .setName("quadro")
+    .setDescription("Enviar quadro de cargos do hospital")
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -164,7 +136,7 @@ async function registrarComandos() {
     { body: commands }
   );
 
-  console.log("✅ Comandos registrados");
+  console.log("✅ Comando registrado");
 }
 
 /* =========================
@@ -172,7 +144,7 @@ async function registrarComandos() {
 ========================= */
 
 client.once("ready", async () => {
-  console.log(`🔥 Bot logado como ${client.user.tag}`);
+  console.log(`🔥 ${client.user.tag}`);
   await registrarComandos();
 });
 
@@ -183,13 +155,13 @@ client.once("ready", async () => {
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "hierarquia") {
+  if (interaction.commandName === "quadro") {
     await interaction.reply({
-      content: "📤 Enviando hierarquia...",
+      content: "📤 Enviando quadro...",
       ephemeral: true
     });
 
-    await enviarHierarquia(interaction.guild);
+    await enviar(interaction.guild);
   }
 });
 
