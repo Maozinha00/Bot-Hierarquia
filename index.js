@@ -28,87 +28,85 @@ const GUILD_ID = process.env.GUILD_ID;
 const CHANNEL_ID = "1477683905187414165";
 
 /* =========================
+   📦 BANCO (MEMÓRIA)
+========================= */
+
+const cargos = {
+  "RESP.HP": [],
+  "AUX.RESP.HP": [],
+  "DIR": [],
+  "VD": [],
+  "STF": [],
+  "COD": [],
+  "MED": [],
+  "ENF": [],
+  "PARM": []
+};
+
+/* =========================
    🤖 CLIENT
 ========================= */
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
+  intents: [GatewayIntentBits.Guilds]
 });
 
 /* =========================
-   🔎 CONVERTER @NOME → MENÇÃO
+   🧠 GERAR TEXTO
 ========================= */
 
-async function mencionar(guild, texto) {
-  const membros = await guild.members.fetch();
-
-  return texto.replace(/@([a-zA-Z0-9._]+)/g, (match, nome) => {
-    const membro = membros.find(m =>
-      m.user.username.toLowerCase() === nome.toLowerCase()
-    );
-
-    return membro ? `<@${membro.id}>` : match;
-  });
-}
-
-/* =========================
-   🧠 GERAR TEXTO BASE
-========================= */
-
-function gerarTextoBase() {
+function gerarTexto() {
   const data = new Date();
 
   const dataFormatada = data.toLocaleDateString("pt-BR");
   const horaFormatada = data.toLocaleTimeString("pt-BR");
 
+  function listar(cargo) {
+    return cargos[cargo].length
+      ? cargos[cargo].map(id => `${cargo} | <@${id}>`).join("\n")
+      : `${cargo} | (vazio)`;
+  }
+
   return `📋 **QUADRO DE CARGOS - HOSPITAL**
 
 👑 **RESPONSÁVEL DO HP**
-RESP.HP | @simpae.
+${listar("RESP.HP")}
 
 🩺 **AUX. RESPONSÁVEL DO HP**
-AUX.RESP.HP | @ywsh7
+${listar("AUX.RESP.HP")}
 
 🏛️ **DIRETORIA**
-DIR | @isautrini9327
-DIR | @jhenrique.28
+${listar("DIR")}
 
 📌 **VICE DIRETORIA**
-VD | @mavi_60141
+${listar("VD")}
 
 ⚖️ **STAFF / STF**
-STF | @rute.rute
+${listar("STF")}
 
 📊 **COORDENAÇÃO**
-COD | @_paulaasx
+${listar("COD")}
 
 💉 **MÉDICOS**
-MED | @xbuny_
-MED | @youtuberfrg
-MED | @karateka4150
+${listar("MED")}
 
 🩹 **ENFERMEIROS**
-ENF | @walison07676
-ENF | @letipotato
+${listar("ENF")}
 
 🚑 **PARAMÉDICOS**
-PARM | @_rogin085
-PARM | @44yve
+${listar("PARM")}
 
-📅 Atualizado em ${dataFormatada} às ${horaFormatada} por @jhenrique.28`;
+📅 Atualizado em ${dataFormatada} às ${horaFormatada}`;
 }
 
 /* =========================
    🧠 EMBED
 ========================= */
 
-async function criarEmbed(guild) {
-  const textoBase = gerarTextoBase();
-  const textoFinal = await mencionar(guild, textoBase);
-
+function criarEmbed() {
   return new EmbedBuilder()
     .setColor("#00BFFF")
-    .setDescription(textoFinal)
+    .setDescription(gerarTexto())
     .setFooter({ text: "Sistema automático HP" })
     .setTimestamp();
 }
@@ -119,28 +117,46 @@ async function criarEmbed(guild) {
 
 async function enviar(guild) {
   const canal = guild.channels.cache.get(CHANNEL_ID);
-
-  if (!canal) {
-    console.log("❌ Canal não encontrado");
-    return;
-  }
-
-  const embed = await criarEmbed(guild);
+  if (!canal) return;
 
   await canal.send({
-    embeds: [embed],
+    embeds: [criarEmbed()],
     allowedMentions: { parse: ["users"] }
   });
 }
 
 /* =========================
-   📜 COMANDO
+   📜 COMANDOS
 ========================= */
 
 const commands = [
   new SlashCommandBuilder()
     .setName("quadro")
-    .setDescription("Enviar quadro de cargos do hospital")
+    .setDescription("Ver quadro de cargos"),
+
+  new SlashCommandBuilder()
+    .setName("addcargo")
+    .setDescription("Adicionar pessoa ao cargo")
+    .addStringOption(opt =>
+      opt.setName("cargo")
+        .setDescription("Nome do cargo (ex: MED)")
+        .setRequired(true))
+    .addUserOption(opt =>
+      opt.setName("pessoa")
+        .setDescription("Usuário")
+        .setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName("removercargo")
+    .setDescription("Remover pessoa do cargo")
+    .addStringOption(opt =>
+      opt.setName("cargo")
+        .setDescription("Nome do cargo")
+        .setRequired(true))
+    .addUserOption(opt =>
+      opt.setName("pessoa")
+        .setDescription("Usuário")
+        .setRequired(true))
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -150,9 +166,52 @@ async function registrarComandos() {
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
-
-  console.log("✅ Comando registrado");
 }
+
+/* =========================
+   🎮 INTERAÇÕES
+========================= */
+
+client.on("interactionCreate", async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+
+  const cargo = interaction.options?.getString("cargo");
+  const user = interaction.options?.getUser("pessoa");
+
+  if (interaction.commandName === "quadro") {
+    return interaction.reply({
+      embeds: [criarEmbed()],
+      ephemeral: true
+    });
+  }
+
+  if (!cargos[cargo]) {
+    return interaction.reply({
+      content: "❌ Cargo inválido!",
+      ephemeral: true
+    });
+  }
+
+  if (interaction.commandName === "addcargo") {
+    if (!cargos[cargo].includes(user.id)) {
+      cargos[cargo].push(user.id);
+    }
+
+    return interaction.reply({
+      content: `✅ ${user} adicionado ao cargo ${cargo}`,
+      ephemeral: true
+    });
+  }
+
+  if (interaction.commandName === "removercargo") {
+    cargos[cargo] = cargos[cargo].filter(id => id !== user.id);
+
+    return interaction.reply({
+      content: `❌ ${user} removido do cargo ${cargo}`,
+      ephemeral: true
+    });
+  }
+});
 
 /* =========================
    🚀 READY
@@ -161,23 +220,6 @@ async function registrarComandos() {
 client.once("ready", async () => {
   console.log(`🔥 ${client.user.tag}`);
   await registrarComandos();
-});
-
-/* =========================
-   🎮 INTERAÇÃO
-========================= */
-
-client.on("interactionCreate", async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  if (interaction.commandName === "quadro") {
-    await interaction.reply({
-      content: "📤 Enviando quadro...",
-      ephemeral: true
-    });
-
-    await enviar(interaction.guild);
-  }
 });
 
 /* =========================
