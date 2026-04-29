@@ -25,11 +25,29 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
-// 🔴 ID do canal
 const CHANNEL_ID = "1477683905187414165";
+const ATUALIZADO_POR_ID = "COLOCA_ID_AQUI";
 
-// 🔴 ID de quem atualiza (Henrique)
-const ATUALIZADO_POR_ID = "ID_DO_JHENRIQUE";
+/* =========================
+   👥 IDs DOS MEMBROS
+========================= */
+
+const IDS = {
+  SIMPAE: "ID_AQUI",
+  YWSH7: "ID_AQUI",
+  ISA: "ID_AQUI",
+  JHENRIQUE: "ID_AQUI",
+  MAVI: "ID_AQUI",
+  RUTE: "ID_AQUI",
+  PAULA: "ID_AQUI",
+  XBUNY: "ID_AQUI",
+  YOUTUBERFRG: "ID_AQUI",
+  KARATEKA: "ID_AQUI",
+  WALISON: "ID_AQUI",
+  LETI: "ID_AQUI",
+  ROGIN: "ID_AQUI",
+  YVE: "ID_AQUI"
+};
 
 /* =========================
    🤖 CLIENT
@@ -52,36 +70,36 @@ function gerarTexto() {
   return `📋 **QUADRO DE CARGOS - HOSPITAL**
 
 👑 **RESPONSÁVEL DO HP**
-RESP.HP | @simpae.
+RESP.HP | <@${IDS.SIMPAE}>
 
 🩺 **AUX. RESPONSÁVEL DO HP**
-AUX.RESP.HP | @ywsh7
+AUX.RESP.HP | <@${IDS.YWSH7}>
 
 🏛️ **DIRETORIA**
-DIR | @isautrini9327
-DIR | @jhenrique.28
+DIR | <@${IDS.ISA}>
+DIR | <@${IDS.JHENRIQUE}>
 
 📌 **VICE DIRETORIA**
-VD | @mavi_60141
+VD | <@${IDS.MAVI}>
 
 ⚖️ **STAFF / STF**
-STF | @rute.rute
+STF | <@${IDS.RUTE}>
 
 📊 **COORDENAÇÃO**
-COD | @_paulaasx
+COD | <@${IDS.PAULA}>
 
 💉 **MÉDICOS**
-MED | @xbuny_
-MED | @youtuberfrg
-MED | @karateka4150
+MED | <@${IDS.XBUNY}>
+MED | <@${IDS.YOUTUBERFRG}>
+MED | <@${IDS.KARATEKA}>
 
 🩹 **ENFERMEIROS**
-ENF | @walison07676
-ENF | @letipotato
+ENF | <@${IDS.WALISON}>
+ENF | <@${IDS.LETI}>
 
 🚑 **PARAMÉDICOS**
-PARM | @_rogin085
-PARM | @44yve
+PARM | <@${IDS.ROGIN}>
+PARM | <@${IDS.YVE}>
 
 📅 Atualizado em ${dataFormatada} às ${horaFormatada} por <@${ATUALIZADO_POR_ID}>`;
 }
@@ -114,7 +132,7 @@ async function enviar(guild) {
 
   await canal.send({
     embeds: [embed],
-    allowedMentions: { parse: [] }
+    allowedMentions: { parse: ["users"] }
   });
 }
 
