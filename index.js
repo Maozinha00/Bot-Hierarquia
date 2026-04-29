@@ -1,4 +1,8 @@
-import "dotenv/config";
+// 🔐 DOTENV só local (Railway não precisa)
+if (process.env.NODE_ENV !== "production") {
+  await import("dotenv/config");
+}
+
 import express from "express";
 import {
   Client,
@@ -21,6 +25,12 @@ const GUILD_ID = process.env.GUILD_ID;
 
 const CHANNEL_ID = "1477683905187414165";
 
+// ❌ BLOQUEIA ERRO DE BUILD
+if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
+  console.error("❌ Variáveis de ambiente não configuradas!");
+  process.exit(1);
+}
+
 // 🤖 CLIENT
 const client = new Client({
   intents: [
@@ -30,7 +40,7 @@ const client = new Client({
 });
 
 /* =========================
-   📊 DADOS FIXOS (SUA LISTA)
+   📊 DADOS FIXOS
 ========================= */
 
 const hierarquiaDB = {
@@ -64,9 +74,6 @@ const hierarquiaDB = {
     { nome: "Rogin", idInterno: "1207", discord: "_rogin085" },
     { nome: "VENEZA", idInterno: "16461", discord: "44yve" }
   ],
-  "STF": [
-    { nome: "Rute Rute", idInterno: "-", discord: "rute.rute" }
-  ]
 };
 
 /* =========================
@@ -74,6 +81,8 @@ const hierarquiaDB = {
 ========================= */
 
 async function gerarHierarquia(guild) {
+  await guild.members.fetch(); // 🔥 essencial
+
   let texto = "🔰 HIERARQUIA DO HOSPITAL HP 🔰\n\n";
 
   for (const [cargo, lista] of Object.entries(hierarquiaDB)) {
@@ -86,9 +95,9 @@ async function gerarHierarquia(guild) {
     }
 
     for (const pessoa of lista) {
-      // tenta encontrar membro pelo username
-      const membro = guild.members.cache.find(
-        m => m.user.username === pessoa.discord
+      const membro = guild.members.cache.find(m =>
+        m.user.username === pessoa.discord ||
+        m.user.globalName === pessoa.discord
       );
 
       const mention = membro ? `<@${membro.id}>` : `@${pessoa.discord}`;
