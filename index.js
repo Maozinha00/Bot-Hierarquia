@@ -1,8 +1,4 @@
-// 🔐 DOTENV só em ambiente local
-if (process.env.NODE_ENV !== "production") {
-  await import("dotenv/config");
-}
-
+import "dotenv/config";
 import express from "express";
 import {
   Client,
@@ -14,7 +10,7 @@ import {
 } from "discord.js";
 
 /* =========================
-   🌐 KEEP ALIVE
+   🌐 KEEP ALIVE (Railway / Render)
 ========================= */
 
 const app = express();
@@ -29,19 +25,16 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
+// 🔴 COLOQUE O ID DO CANAL AQUI
 const CHANNEL_ID = "1477683905187414165";
 
 /* =========================
-   ⚠️ VALIDAÇÃO (NÃO QUEBRA BUILD)
+   ⚠️ VALIDAÇÃO
 ========================= */
 
 if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
-  console.error("❌ Variáveis de ambiente NÃO configuradas corretamente!");
-  console.log({
-    TOKEN: !!TOKEN,
-    CLIENT_ID: !!CLIENT_ID,
-    GUILD_ID: !!GUILD_ID
-  });
+  console.error("❌ Configure TOKEN, CLIENT_ID e GUILD_ID no .env");
+  process.exit(1);
 }
 
 /* =========================
@@ -56,49 +49,47 @@ const client = new Client({
 });
 
 /* =========================
-   📊 DADOS FIXOS
+   📊 HIERARQUIA (USE ID DO DISCORD)
 ========================= */
 
 const hierarquiaDB = {
   "RESP.HP": [
-    { nome: "Seregio", idInterno: "-", discord: "simpae." }
+    { nome: "Seregio", idInterno: "-", discordId: "ID_AQUI" }
   ],
   "AUX.RESP.HP": [
-    { nome: "Xulia", idInterno: "-", discord: "ywsh7" }
+    { nome: "Xulia", idInterno: "-", discordId: "ID_AQUI" }
   ],
   "DIR": [
-    { nome: "Aurora", idInterno: "633", discord: "isautrini9327" },
-    { nome: "Henrique", idInterno: "368", discord: "jhenrique.28" }
+    { nome: "Aurora", idInterno: "633", discordId: "ID_AQUI" },
+    { nome: "Henrique", idInterno: "368", discordId: "ID_AQUI" }
   ],
   "VD": [
-    { nome: "Aika Souza", idInterno: "408", discord: "mavi_60141" }
+    { nome: "Aika Souza", idInterno: "408", discordId: "ID_AQUI" }
   ],
   "SUP": [],
   "COD": [
-    { nome: "Kau", idInterno: "429", discord: "_paulaasx" }
+    { nome: "Kau", idInterno: "429", discordId: "ID_AQUI" }
   ],
   "MED": [
-    { nome: "Aila Suzuki", idInterno: "2180", discord: "xbuny_" },
-    { nome: "Rian Beckham", idInterno: "17548", discord: "youtuberfrg" },
-    { nome: "Davidy Lampião", idInterno: "17518", discord: "karateka4150" }
+    { nome: "Aila Suzuki", idInterno: "2180", discordId: "ID_AQUI" },
+    { nome: "Rian Beckham", idInterno: "17548", discordId: "ID_AQUI" },
+    { nome: "Davidy Lampião", idInterno: "17518", discordId: "ID_AQUI" }
   ],
   "ENF": [
-    { nome: "Rolnadinho", idInterno: "17249", discord: "walison07676" },
-    { nome: "Tink Wink", idInterno: "15968", discord: "letipotato" }
+    { nome: "Rolnadinho", idInterno: "17249", discordId: "ID_AQUI" },
+    { nome: "Tink Wink", idInterno: "15968", discordId: "ID_AQUI" }
   ],
   "PARM": [
-    { nome: "Rogin", idInterno: "1207", discord: "_rogin085" },
-    { nome: "VENEZA", idInterno: "16461", discord: "44yve" }
+    { nome: "Rogin", idInterno: "1207", discordId: "ID_AQUI" },
+    { nome: "VENEZA", idInterno: "16461", discordId: "ID_AQUI" }
   ],
 };
 
 /* =========================
-   📊 GERAR HIERARQUIA
+   📊 GERAR TEXTO
 ========================= */
 
-async function gerarHierarquia(guild) {
-  await guild.members.fetch();
-
+function gerarHierarquia() {
   let texto = "🔰 HIERARQUIA DO HOSPITAL HP 🔰\n\n";
 
   for (const [cargo, lista] of Object.entries(hierarquiaDB)) {
@@ -111,16 +102,7 @@ async function gerarHierarquia(guild) {
     }
 
     for (const pessoa of lista) {
-      const membro = guild.members.cache.find(m =>
-        m.user.username === pessoa.discord ||
-        m.user.globalName === pessoa.discord
-      );
-
-      const mention = membro
-        ? `<@${membro.id}>`
-        : `@${pessoa.discord}`;
-
-      texto += `• ${mention} | ${pessoa.nome} | ${pessoa.idInterno}\n`;
+      texto += `• <@${pessoa.discordId}> | ${pessoa.nome} | ${pessoa.idInterno}\n`;
     }
 
     texto += "\n";
@@ -133,8 +115,8 @@ async function gerarHierarquia(guild) {
    🧠 EMBED
 ========================= */
 
-async function criarEmbed(guild) {
-  const texto = await gerarHierarquia(guild);
+function criarEmbed() {
+  const texto = gerarHierarquia();
 
   return new EmbedBuilder()
     .setColor("#00BFFF")
@@ -150,9 +132,13 @@ async function criarEmbed(guild) {
 
 async function enviarHierarquia(guild) {
   const canal = guild.channels.cache.get(CHANNEL_ID);
-  if (!canal) return console.log("❌ Canal não encontrado");
 
-  const embed = await criarEmbed(guild);
+  if (!canal) {
+    console.log("❌ Canal não encontrado");
+    return;
+  }
+
+  const embed = criarEmbed();
 
   await canal.send({
     embeds: [embed],
@@ -161,26 +147,24 @@ async function enviarHierarquia(guild) {
 }
 
 /* =========================
-   📜 COMANDO
+   📜 COMANDOS
 ========================= */
 
 const commands = [
   new SlashCommandBuilder()
     .setName("hierarquia")
-    .setDescription("Enviar hierarquia no canal")
-].map(c => c.toJSON());
+    .setDescription("Enviar a hierarquia no canal")
+].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 async function registrarComandos() {
-  if (!TOKEN) return;
-
   await rest.put(
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
 
-  console.log("✅ Comando registrado");
+  console.log("✅ Comandos registrados");
 }
 
 /* =========================
@@ -188,7 +172,7 @@ async function registrarComandos() {
 ========================= */
 
 client.once("ready", async () => {
-  console.log(`🔥 Logado como ${client.user.tag}`);
+  console.log(`🔥 Bot logado como ${client.user.tag}`);
   await registrarComandos();
 });
 
@@ -213,8 +197,4 @@ client.on("interactionCreate", async interaction => {
    🔑 LOGIN
 ========================= */
 
-if (TOKEN) {
-  client.login(TOKEN);
-} else {
-  console.error("❌ TOKEN não encontrado. Bot não iniciou.");
-}
+client.login(TOKEN);
