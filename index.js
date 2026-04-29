@@ -1,4 +1,4 @@
-// 🔐 DOTENV só local (Railway não precisa)
+// 🔐 DOTENV só em ambiente local
 if (process.env.NODE_ENV !== "production") {
   await import("dotenv/config");
 }
@@ -13,25 +13,41 @@ import {
   SlashCommandBuilder
 } from "discord.js";
 
-// 🌐 KEEP ALIVE
+/* =========================
+   🌐 KEEP ALIVE
+========================= */
+
 const app = express();
 app.get("/", (_, res) => res.send("Bot online 🔥"));
-app.listen(3000);
+app.listen(3000, () => console.log("🌐 Web server ativo"));
 
-// 🔐 CONFIG
+/* =========================
+   🔐 CONFIG
+========================= */
+
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
 const CHANNEL_ID = "1477683905187414165";
 
-// ❌ BLOQUEIA ERRO DE BUILD
+/* =========================
+   ⚠️ VALIDAÇÃO (NÃO QUEBRA BUILD)
+========================= */
+
 if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
-  console.error("❌ Variáveis de ambiente não configuradas!");
-  process.exit(1);
+  console.error("❌ Variáveis de ambiente NÃO configuradas corretamente!");
+  console.log({
+    TOKEN: !!TOKEN,
+    CLIENT_ID: !!CLIENT_ID,
+    GUILD_ID: !!GUILD_ID
+  });
 }
 
-// 🤖 CLIENT
+/* =========================
+   🤖 CLIENT
+========================= */
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -81,7 +97,7 @@ const hierarquiaDB = {
 ========================= */
 
 async function gerarHierarquia(guild) {
-  await guild.members.fetch(); // 🔥 essencial
+  await guild.members.fetch();
 
   let texto = "🔰 HIERARQUIA DO HOSPITAL HP 🔰\n\n";
 
@@ -100,7 +116,9 @@ async function gerarHierarquia(guild) {
         m.user.globalName === pessoa.discord
       );
 
-      const mention = membro ? `<@${membro.id}>` : `@${pessoa.discord}`;
+      const mention = membro
+        ? `<@${membro.id}>`
+        : `@${pessoa.discord}`;
 
       texto += `• ${mention} | ${pessoa.nome} | ${pessoa.idInterno}\n`;
     }
@@ -155,10 +173,14 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 async function registrarComandos() {
+  if (!TOKEN) return;
+
   await rest.put(
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
+
+  console.log("✅ Comando registrado");
 }
 
 /* =========================
@@ -191,4 +213,8 @@ client.on("interactionCreate", async interaction => {
    🔑 LOGIN
 ========================= */
 
-client.login(TOKEN);
+if (TOKEN) {
+  client.login(TOKEN);
+} else {
+  console.error("❌ TOKEN não encontrado. Bot não iniciou.");
+}
