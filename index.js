@@ -18,6 +18,7 @@ app.listen(3000);
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
+
 const ROLE_BASE = "1477683902079303932";
 const CHANNEL_ID = "1477683905187414165";
 
@@ -29,8 +30,10 @@ const client = new Client({
   ]
 });
 
-// 📊 GERAR HIERARQUIA POR SIGLA
+// 📊 GERAR HIERARQUIA
 async function gerarHierarquia(guild) {
+  await guild.members.fetch(); // 🔥 ESSENCIAL
+
   const roleBase = guild.roles.cache.get(ROLE_BASE);
   if (!roleBase) return "❌ Cargo base não encontrado";
 
@@ -63,68 +66,25 @@ async function gerarHierarquia(guild) {
 
     const mention = `<@${member.id}>`;
 
-    const linha = `• ${mention} | ${nomeFinal} | ${idInterno}`;
-
     if (grupos[sigla]) {
-      grupos[sigla].push(linha);
+      grupos[sigla].push(
+        `• ${mention} | ${nomeFinal} | ${idInterno}`
+      );
     }
   });
 
-  return `🔰 HIERARQUIA DO HOSPITAL HP 🔰
+  let texto = "🔰 HIERARQUIA DO HOSPITAL HP 🔰\n\n";
 
-━━━━━━━━━━━━━━━━━━━━━━
+  for (const [cargo, lista] of Object.entries(grupos)) {
+    texto += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    texto += `✅ ${cargo}\n`;
+    texto += `${lista.join("\n") || "• Nenhum"}\n\n`;
+  }
 
-✅ RESPONSÁVEL DO HP
-${grupos["RESP.HP"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ AUX RESPONSÁVEL
-${grupos["AUX.RESP.HP"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ DIRETORIA
-${grupos["DIR"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ VICE DIRETORIA
-${grupos["VD"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ SUPERVISÃO
-${grupos["SUP"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ COORDENAÇÃO
-${grupos["COD"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ MÉDICOS
-${grupos["MED"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ ENFERMEIROS
-${grupos["ENF"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ PARAMÉDICOS
-${grupos["PARM"].join("\n") || "• Nenhum"}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-✅ STAFF
-${grupos["STF"].join("\n") || "• Nenhum"}
-`;
+  return texto;
 }
 
-// 🧠 CRIAR EMBED
+// 🧠 EMBED
 async function criarEmbed(guild) {
   const texto = await gerarHierarquia(guild);
 
@@ -145,22 +105,22 @@ async function enviarHierarquia(guild) {
 
   await canal.send({
     embeds: [embed],
-    allowedMentions: { parse: [] } // não notifica todo mundo
+    allowedMentions: { parse: [] }
   });
 }
 
-// 📜 SLASH COMMAND
+// 📜 COMANDO
 const commands = [
   new SlashCommandBuilder()
     .setName("hierarquia")
     .setDescription("Enviar hierarquia no canal")
-].map(cmd => cmd.toJSON());
+].map(c => c.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 async function registrarComandos() {
   await rest.put(
-    Routes.applicationCommands(CLIENT_ID),
+    Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
 }
@@ -171,13 +131,13 @@ client.once("ready", async () => {
   await registrarComandos();
 });
 
-// 🎮 COMANDO
+// 🎮 INTERAÇÃO
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === "hierarquia") {
     await interaction.reply({
-      content: "📤 Enviando hierarquia no canal...",
+      content: "📤 Enviando hierarquia...",
       ephemeral: true
     });
 
