@@ -29,8 +29,8 @@ const client = new Client({
   ]
 });
 
-// 📊 GERAR HIERARQUIA PROFISSIONAL
-async function gerarHierarquiaProfissional(guild) {
+// 📊 GERAR HIERARQUIA PROFISSIONAL (COM @)
+async function gerarHierarquia(guild) {
   const roleBase = guild.roles.cache.get(ROLE_BASE);
   if (!roleBase) return "❌ Cargo base não encontrado";
 
@@ -52,15 +52,15 @@ async function gerarHierarquiaProfissional(guild) {
     }
 
     const nick = member.nickname || "Sem nick";
-    const tag = member.user.tag;
     const id = member.id;
+    const mention = `<@${id}>`;
 
     grupos[cargoPrincipal.name].membros.push(
-      `• ${tag} | ${nick} | ${id}`
+      `• ${mention} | ${nick} | ${id}`
     );
   });
 
-  // ordenar cargos por posição
+  // ordenar cargos por hierarquia real
   const cargosOrdenados = Object.entries(grupos)
     .sort((a, b) => b[1].position - a[1].position);
 
@@ -75,22 +75,22 @@ async function gerarHierarquiaProfissional(guild) {
   return texto;
 }
 
-// 🧠 CRIAR EMBED
+// 🧠 EMBED
 async function criarEmbed(guild) {
-  const texto = await gerarHierarquiaProfissional(guild);
+  const texto = await gerarHierarquia(guild);
 
   return new EmbedBuilder()
     .setColor("#00BFFF")
     .setTitle("🏥 Sistema de Hierarquia HP")
     .setDescription(`\`\`\`\n${texto}\n\`\`\``)
-    .setFooter({ text: "Atualização automática a cada 3 minutos" })
+    .setFooter({ text: "Atualiza automaticamente a cada 3 minutos" })
     .setTimestamp();
 }
 
-// 💾 CONTROLE DE MENSAGEM
+// 💾 CONTROLE DA MENSAGEM
 let mensagemID = null;
 
-// 🔄 ATUALIZAR
+// 🔄 ATUALIZAR / ENVIAR
 async function atualizarMensagem(guild) {
   const canal = guild.channels.cache.get(CHANNEL_ID);
   if (!canal) return;
@@ -100,13 +100,22 @@ async function atualizarMensagem(guild) {
   try {
     if (mensagemID) {
       const msg = await canal.messages.fetch(mensagemID);
-      await msg.edit({ embeds: [embed] });
+      await msg.edit({
+        embeds: [embed],
+        allowedMentions: { parse: [] } // não notifica geral
+      });
     } else {
-      const msg = await canal.send({ embeds: [embed] });
+      const msg = await canal.send({
+        embeds: [embed],
+        allowedMentions: { parse: [] }
+      });
       mensagemID = msg.id;
     }
   } catch {
-    const msg = await canal.send({ embeds: [embed] });
+    const msg = await canal.send({
+      embeds: [embed],
+      allowedMentions: { parse: [] }
+    });
     mensagemID = msg.id;
   }
 }
@@ -115,19 +124,24 @@ async function atualizarMensagem(guild) {
 const commands = [
   new SlashCommandBuilder()
     .setName("hierarquia")
-    .setDescription("Atualiza a hierarquia do hospital")
+    .setDescription("Atualizar a hierarquia do hospital")
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 async function registrarComandos() {
-  await rest.put(
-    Routes.applicationCommands(CLIENT_ID),
-    { body: commands }
-  );
+  try {
+    await rest.put(
+      Routes.applicationCommands(CLIENT_ID),
+      { body: commands }
+    );
+    console.log("✅ Comando /hierarquia registrado");
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-// 🚀 READY
+// 🚀 BOT READY
 client.once("ready", async () => {
   console.log(`🔥 Logado como ${client.user.tag}`);
 
@@ -135,20 +149,22 @@ client.once("ready", async () => {
 
   const guild = client.guilds.cache.first();
 
+  // Atualiza ao iniciar
   await atualizarMensagem(guild);
 
+  // ⏱️ Atualiza a cada 3 minutos
   setInterval(() => {
     atualizarMensagem(guild);
   }, 3 * 60 * 1000);
 });
 
-// 🎮 INTERAÇÃO
+// 🎮 COMANDO
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === "hierarquia") {
     await interaction.reply({
-      content: "🔄 Atualizando...",
+      content: "🔄 Atualizando hierarquia...",
       ephemeral: true
     });
 
