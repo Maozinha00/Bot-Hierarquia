@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import {
   Client,
@@ -11,7 +12,6 @@ import {
 /* =========================
    🌐 KEEP ALIVE
 ========================= */
-
 const app = express();
 app.get("/", (_, res) => res.send("Bot online 🔥"));
 app.listen(3000, () => console.log("🌐 Web server ativo"));
@@ -19,35 +19,20 @@ app.listen(3000, () => console.log("🌐 Web server ativo"));
 /* =========================
    🔐 CONFIG
 ========================= */
-
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
-
 const CHANNEL_ID = "1477683905187414165";
 
 /* =========================
-   🚨 VALIDAÇÃO
+   📦 BANCO (MEMÓRIA)
 ========================= */
-
-console.log("🔐 TOKEN:", !!TOKEN);
-console.log("📏 TAMANHO:", TOKEN?.length);
-
-if (!TOKEN || TOKEN.length < 50) {
-  console.error("❌ TOKEN INVÁLIDO");
-  process.exit(1);
-}
-
-/* =========================
-   📦 BANCO
-========================= */
-
 const cargos = {
   "RESP.HP": [],
   "AUX.RESP.HP": [],
   "DIR": [],
   "VD": [],
-  "SUP": [], // 🔥 AGORA É SUP
+  "SUP": [], // ✅ SUBSTITUI STF
   "COD": [],
   "MED": [],
   "ENF": [],
@@ -57,7 +42,6 @@ const cargos = {
 /* =========================
    🤖 CLIENT
 ========================= */
-
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
@@ -65,17 +49,15 @@ const client = new Client({
 /* =========================
    🧠 GERAR TEXTO
 ========================= */
-
 function gerarTexto() {
   const data = new Date();
-
   const dataFormatada = data.toLocaleDateString("pt-BR");
   const horaFormatada = data.toLocaleTimeString("pt-BR");
 
   function listar(cargo) {
     return cargos[cargo].length
-      ? cargos[cargo].map(id => `• <@${id}>`).join("\n")
-      : "(vazio)";
+      ? cargos[cargo].map(id => `${cargo} | <@${id}>`).join("\n")
+      : `${cargo} | (vazio)`;
   }
 
   return `📋 **QUADRO DE CARGOS - HOSPITAL**
@@ -92,7 +74,7 @@ ${listar("DIR")}
 📌 **VICE DIRETORIA**
 ${listar("VD")}
 
-🔱 **SUPERVISÃO**
+🛡️ **SUPERVISOR**
 ${listar("SUP")}
 
 📊 **COORDENAÇÃO**
@@ -113,7 +95,6 @@ ${listar("PARM")}
 /* =========================
    🧠 EMBED
 ========================= */
-
 function criarEmbed() {
   return new EmbedBuilder()
     .setColor("#00BFFF")
@@ -125,7 +106,6 @@ function criarEmbed() {
 /* =========================
    📤 ENVIAR
 ========================= */
-
 async function enviar(guild) {
   const canal = guild.channels.cache.get(CHANNEL_ID);
   if (!canal) return;
@@ -139,7 +119,6 @@ async function enviar(guild) {
 /* =========================
    📜 COMANDOS
 ========================= */
-
 const commands = [
   new SlashCommandBuilder()
     .setName("quadro")
@@ -150,21 +129,28 @@ const commands = [
     .setDescription("Adicionar pessoa ao cargo")
     .addStringOption(opt =>
       opt.setName("cargo")
-        .setDescription("Ex: SUP, MED, DIR")
-        .setRequired(true))
+        .setDescription("Nome do cargo (ex: MED, SUP)")
+        .setRequired(true)
+    )
     .addUserOption(opt =>
       opt.setName("pessoa")
-        .setRequired(true)),
+        .setDescription("Usuário")
+        .setRequired(true)
+    ),
 
   new SlashCommandBuilder()
     .setName("removercargo")
     .setDescription("Remover pessoa do cargo")
     .addStringOption(opt =>
       opt.setName("cargo")
-        .setRequired(true))
+        .setDescription("Nome do cargo")
+        .setRequired(true)
+    )
     .addUserOption(opt =>
       opt.setName("pessoa")
-        .setRequired(true))
+        .setDescription("Usuário")
+        .setRequired(true)
+    )
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -174,25 +160,20 @@ async function registrarComandos() {
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
-
-  console.log("✅ Comandos registrados");
 }
 
 /* =========================
    🎮 INTERAÇÕES
 ========================= */
-
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "quadro") {
-    return interaction.reply({
-      embeds: [criarEmbed()]
-    });
-  }
+  const cargo = interaction.options?.getString("cargo");
+  const user = interaction.options?.getUser("pessoa");
 
-  const cargo = interaction.options.getString("cargo").toUpperCase();
-  const user = interaction.options.getUser("pessoa");
+  if (interaction.commandName === "quadro") {
+    return interaction.reply({ embeds: [criarEmbed()] });
+  }
 
   if (!cargos[cargo]) {
     return interaction.reply({
@@ -207,7 +188,7 @@ client.on("interactionCreate", async interaction => {
     }
 
     return interaction.reply({
-      content: `✅ ${user} adicionado em ${cargo}`,
+      content: `✅ ${user} adicionado ao cargo ${cargo}`,
       ephemeral: true
     });
   }
@@ -216,7 +197,7 @@ client.on("interactionCreate", async interaction => {
     cargos[cargo] = cargos[cargo].filter(id => id !== user.id);
 
     return interaction.reply({
-      content: `❌ ${user} removido de ${cargo}`,
+      content: `❌ ${user} removido do cargo ${cargo}`,
       ephemeral: true
     });
   }
@@ -225,14 +206,12 @@ client.on("interactionCreate", async interaction => {
 /* =========================
    🚀 READY
 ========================= */
-
 client.once("ready", async () => {
-  console.log(`🔥 ${client.user.tag} online`);
+  console.log(`🔥 ${client.user.tag}`);
   await registrarComandos();
 });
 
 /* =========================
    🔑 LOGIN
 ========================= */
-
 client.login(TOKEN);
