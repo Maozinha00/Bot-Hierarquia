@@ -1,4 +1,3 @@
-import "dotenv/config";
 import express from "express";
 import {
   Client,
@@ -28,7 +27,19 @@ const GUILD_ID = process.env.GUILD_ID;
 const CHANNEL_ID = "1477683905187414165";
 
 /* =========================
-   📦 BANCO (MEMÓRIA)
+   🚨 VALIDAÇÃO
+========================= */
+
+console.log("🔐 TOKEN:", !!TOKEN);
+console.log("📏 TAMANHO:", TOKEN?.length);
+
+if (!TOKEN || TOKEN.length < 50) {
+  console.error("❌ TOKEN INVÁLIDO");
+  process.exit(1);
+}
+
+/* =========================
+   📦 BANCO
 ========================= */
 
 const cargos = {
@@ -36,7 +47,7 @@ const cargos = {
   "AUX.RESP.HP": [],
   "DIR": [],
   "VD": [],
-  "STF": [],
+  "SUP": [], // 🔥 AGORA É SUP
   "COD": [],
   "MED": [],
   "ENF": [],
@@ -63,8 +74,8 @@ function gerarTexto() {
 
   function listar(cargo) {
     return cargos[cargo].length
-      ? cargos[cargo].map(id => `${cargo} | <@${id}>`).join("\n")
-      : `${cargo} | (vazio)`;
+      ? cargos[cargo].map(id => `• <@${id}>`).join("\n")
+      : "(vazio)";
   }
 
   return `📋 **QUADRO DE CARGOS - HOSPITAL**
@@ -81,8 +92,8 @@ ${listar("DIR")}
 📌 **VICE DIRETORIA**
 ${listar("VD")}
 
-⚖️ **STAFF / STF**
-${listar("STF")}
+🔱 **SUPERVISÃO**
+${listar("SUP")}
 
 📊 **COORDENAÇÃO**
 ${listar("COD")}
@@ -139,11 +150,10 @@ const commands = [
     .setDescription("Adicionar pessoa ao cargo")
     .addStringOption(opt =>
       opt.setName("cargo")
-        .setDescription("Nome do cargo (ex: MED)")
+        .setDescription("Ex: SUP, MED, DIR")
         .setRequired(true))
     .addUserOption(opt =>
       opt.setName("pessoa")
-        .setDescription("Usuário")
         .setRequired(true)),
 
   new SlashCommandBuilder()
@@ -151,11 +161,9 @@ const commands = [
     .setDescription("Remover pessoa do cargo")
     .addStringOption(opt =>
       opt.setName("cargo")
-        .setDescription("Nome do cargo")
         .setRequired(true))
     .addUserOption(opt =>
       opt.setName("pessoa")
-        .setDescription("Usuário")
         .setRequired(true))
 ].map(cmd => cmd.toJSON());
 
@@ -166,6 +174,8 @@ async function registrarComandos() {
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
+
+  console.log("✅ Comandos registrados");
 }
 
 /* =========================
@@ -175,14 +185,14 @@ async function registrarComandos() {
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  const cargo = interaction.options?.getString("cargo");
-  const user = interaction.options?.getUser("pessoa");
-
   if (interaction.commandName === "quadro") {
-return interaction.reply({
-  embeds: [criarEmbed()]
-});
+    return interaction.reply({
+      embeds: [criarEmbed()]
+    });
   }
+
+  const cargo = interaction.options.getString("cargo").toUpperCase();
+  const user = interaction.options.getUser("pessoa");
 
   if (!cargos[cargo]) {
     return interaction.reply({
@@ -197,7 +207,7 @@ return interaction.reply({
     }
 
     return interaction.reply({
-      content: `✅ ${user} adicionado ao cargo ${cargo}`,
+      content: `✅ ${user} adicionado em ${cargo}`,
       ephemeral: true
     });
   }
@@ -206,7 +216,7 @@ return interaction.reply({
     cargos[cargo] = cargos[cargo].filter(id => id !== user.id);
 
     return interaction.reply({
-      content: `❌ ${user} removido do cargo ${cargo}`,
+      content: `❌ ${user} removido de ${cargo}`,
       ephemeral: true
     });
   }
@@ -217,7 +227,7 @@ return interaction.reply({
 ========================= */
 
 client.once("ready", async () => {
-  console.log(`🔥 ${client.user.tag}`);
+  console.log(`🔥 ${client.user.tag} online`);
   await registrarComandos();
 });
 
